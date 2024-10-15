@@ -1,137 +1,105 @@
 <?php
-header('Content-Type: application/json');
-header("Access-Control-Allow-Origin: *");
-header('Access-Control-Allow-Methods: POST, GET, OPTIONS'); // Specify allowed methods
-header('Access-Control-Allow-Headers: Content-Type'); // Allow specific headers
-
-// Handle preflight OPTIONS request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(204); // No content response
-    exit;
-}
-
-include 'db.php'; // Include your database connection file
+include 'headers.php';
+include 'db.php';
 
 class OwnerOperations {
-    private $pdo;
 
-    // Constructor to initialize PDO
-    public function __construct($pdo) {
-        $this->pdo = $pdo;
-    }
-
-    // Method to create an owner
-    public function handleCreateOwner($data) {
-        try {
-            $query = "INSERT INTO tbl_owners (First_name, Middle_name, Last_name, Age, Contact_number, Email_address, owner_address) VALUES (:first_name, :middle_name, :last_name, :age, :contact_number, :email, :owner_address)";
-            $stmt = $this->pdo->prepare($query);
-            $stmt->execute([
-                ':first_name' => $data['first_name'],
-                ':middle_name' => $data['middle_name'],
-                ':last_name' => $data['last_name'],
-                ':age' => $data['age'],
-                ':contact_number' => $data['contact_number'],
-                ':email' => $data['email'],
-                ':owner_address' => $data['owner_address']
-            ]);
-            return json_encode(['success' => true, 'message' => 'Owner created']);
-        } catch (PDOException $e) {
-            return json_encode(['success' => false, 'message' => 'Error creating owner: ' . $e->getMessage()]);
-        }
-    }
-
-    // Method to update an owner
-    public function handleUpdateOwner($data) {
-        $query = "UPDATE tbl_owners SET First_name = :first_name, Middle_name = :middle_name, Last_name = :last_name, Age = :age, Contact_number = :contact_number, Email_address = :email, owner_address = :owner_address WHERE owner_id = :owner_id";
-        $stmt = $this->pdo->prepare($query);
-        $stmt->execute([
-            ':first_name' => $data['first_name'],
-            ':middle_name' => $data['middle_name'],
-            ':last_name' => $data['last_name'],
-            ':age' => $data['age'],
-            ':contact_number' => $data['contact_number'],
-            ':email' => $data['email'],
-            ':owner_address' => $data['owner_address'],
-            ':owner_id' => $data['owner_id']
-        ]);
-        return json_encode(['success' => true, 'message' => 'Owner updated']);
-    }
-
-    // Method to get an owner
-    public function handleGetOwner($data) {
-        $query = "SELECT * FROM tbl_owners WHERE owner_id = :owner_id";
-        $stmt = $this->pdo->prepare($query);
-        $stmt->execute([':owner_id' => $data['owner_id']]);
-        $owner = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($owner) {
-            return json_encode(['success' => true, 'data' => $owner]);
-        } else {
-            return json_encode(['success' => false, 'message' => 'Owner not found']);
-        }
-    }
-
-    // Method to delete an owner
-    public function handleDeleteOwner($data) {
-        $query = "DELETE FROM tbl_owners WHERE owner_id = :owner_id";
-        $stmt = $this->pdo->prepare($query);
-        $stmt->execute([':owner_id' => $data['owner_id']]);
-        return json_encode(['success' => true, 'message' => 'Owner deleted']);
-    }
-
-    // Method to list owners
-    public function handleListOwners() {
-        $query = "SELECT * FROM tbl_owners";
-        $stmt = $this->pdo->prepare($query);
+    function createOwner($json){
+        include 'db.php';
+        $json = json_decode($json, true);
+        $sql = "INSERT INTO tbl_owners (First_name, Middle_name, Last_name, Age, Contact_number, Email_address, owner_address) 
+                VALUES (:first_name, :middle_name, :last_name, :age, :contact_number, :email, :owner_address)";
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(":first_name", $json["first_name"]);
+        $stmt->bindParam(":middle_name", $json["middle_name"]);
+        $stmt->bindParam(":last_name", $json["last_name"]);
+        $stmt->bindParam(":age", $json["age"]);
+        $stmt->bindParam(":contact_number", $json["contact_number"]);
+        $stmt->bindParam(":email", $json["email"]);
+        $stmt->bindParam(":owner_address", $json["owner_address"]);
         $stmt->execute();
-        $owners = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        return json_encode(['success' => true, 'data' => $owners]);
+        return $stmt->rowCount() > 0 ? 1 : 0;
     }
 
-    // Method to list pets by owner
-    public function handleListPetsByOwner($data) {
-        $query = "SELECT pet_id, pet_name FROM tbl_pets WHERE owner_id = :owner_id"; // Adjusted for correct column name
-        $stmt = $this->pdo->prepare($query);
-        $stmt->execute([':owner_id' => $data['owner_id']]);
-        $pets = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        return json_encode([
-            'success' => true,
-            'data' => $pets,
-            'operation' => 'listPetsByOwner'
-        ]);
+    function updateOwner($json){
+        include 'db.php';
+        $json = json_decode($json, true);
+        $sql = "UPDATE tbl_owners SET First_name = :first_name, Middle_name = :middle_name, Last_name = :last_name, Age = :age, 
+                Contact_number = :contact_number, Email_address = :email, owner_address = :owner_address, UpdatedAt = NOW() 
+                WHERE OwnerID = :OwnerID";
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(":OwnerID", $json["OwnerID"]);
+        $stmt->bindParam(":first_name", $json["first_name"]);
+        $stmt->bindParam(":middle_name", $json["middle_name"]);
+        $stmt->bindParam(":last_name", $json["last_name"]);
+        $stmt->bindParam(":age", $json["age"]);
+        $stmt->bindParam(":contact_number", $json["contact_number"]);
+        $stmt->bindParam(":email", $json["email"]);
+        $stmt->bindParam(":owner_address", $json["owner_address"]);
+        $stmt->execute();
+        return $stmt->rowCount() > 0 ? 1 : 0;
+    }
+
+    function deleteOwner($json){
+        include 'db.php';
+        $json = json_decode($json, true);
+        $sql = "DELETE FROM tbl_owners WHERE OwnerID = :OwnerID";
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(":OwnerID", $json["OwnerID"]);
+        $stmt->execute();
+        return $stmt->rowCount() > 0 ? 1 : 0;
+    }
+
+    function listOwners(){
+        include 'db.php';
+        $sql = "SELECT * FROM tbl_owners";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute();
+        return $stmt->rowCount() > 0 ? json_encode($stmt->fetchAll(PDO::FETCH_ASSOC)) : 0;
+    }
+    function getOwnerDetails()
+    {
+        include 'db.php';
+        $returnValue = [];
+        $returnValue["listOwners"] = $this->listOwners();
+        return json_encode($returnValue);
+
+    }
+    public function ListPetsByOwner($json) {
+        $json = json_decode($json, true);
+        include 'db.php';
+        $sql = "SELECT * FROM tbl_pets WHERE owner_id = :owner_id";
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(":owner_id", $data["owner_id"]);
+        $stmt->execute();
+        return $stmt->rowCount() > 0 ? json_encode($stmt->fetchAll(PDO::FETCH_ASSOC)) : 0;
     }
 }
 
-// Initialize the OwnerOperations class with the PDO connection
-$ownerOps = new OwnerOperations($pdo);
+$json = isset($_POST["json"]) ? $_POST["json"] : "0";
+$operation = isset($_POST["operation"]) ? $_POST["operation"] : "0";
 
-// Get the JSON input
-$json = file_get_contents('php://input');
-$data = json_decode($json, true);
-$operation = $data['operation'] ?? null;
-
+$ownerOps = new OwnerOperations();
 switch ($operation) {
     case "createOwner":
-        echo $ownerOps->handleCreateOwner($data);
+        echo $ownerOps->createOwner($json);
         break;
     case "updateOwner":
-        echo $ownerOps->handleUpdateOwner($data);
-        break;
-    case "getOwner":
-        echo $ownerOps->handleGetOwner($data);
+        echo $ownerOps->updateOwner($json);
         break;
     case "deleteOwner":
-        echo $ownerOps->handleDeleteOwner($data);
+        echo $ownerOps->deleteOwner($json);
+        break;
+    case "ListPetsByOwner":
+        echo $ownerOps->ListPetsByOwner($json);
         break;
     case "listOwners":
-        echo $ownerOps->handleListOwners();
+        echo $ownerOps->listOwners();
         break;
-    case "listPetsByOwner":
-        echo $ownerOps->handleListPetsByOwner($data);
-        break;
+    
+    // case "listOwners":
+    //     echo $ownerOps->listOwners();
+    //     break;
     default:
-        echo json_encode(['success' => false, 'message' => 'Invalid operation', 'operation' => $operation]);
         break;
 }
-?>

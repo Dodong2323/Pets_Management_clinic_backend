@@ -1,121 +1,83 @@
 <?php
+include 'db.php';
+include 'headers.php';
 
-header('Content-Type: application/json');
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
 
 class AppointmentOperations
 {
-    function handleCreateAppointment($data)
-    {
-        include 'db.php';
-        $query = "INSERT INTO tbl_appointment (pet_id, owner_id, VetID, AppointmentDate, AppointmentTime, ReasonForVisit, Status) 
-                  VALUES (:pet_id, :owner_id, :VetID, :AppointmentDate, :AppointmentTime, :ReasonForVisit, :Status)";
-        
-        $stmt = $pdo->prepare($query);
-        $stmt->execute([
-            ':pet_id' => $data['PetID'], // Update to match new column name
-            ':owner_id' => $data['OwnerID'], // Update to match new column name
-            ':VetID' => $data['VetID'],
-            ':AppointmentDate' => $data['AppointmentDate'],
-            ':AppointmentTime' => $data['AppointmentTime'],
-            ':ReasonForVisit' => $data['ReasonForVisit'],
-            ':Status' => $data['Status']
-        ]);
-        
-        if ($stmt->rowCount() > 0) {
-            return json_encode(['success' => true, 'message' => 'Appointment created successfully', 'id' => $pdo->lastInsertId(), 'operation' => 'createAppointment']);
-        } else {
-            return json_encode(['success' => false, 'message' => 'Failed to create appointment', 'operation' => 'createAppointment']);
-        }
-    }
 
-    function handleGetAppointment($data)
-    {
+    function createAppointment($json){
         include 'db.php';
-        $query = "SELECT * FROM tbl_appointment WHERE AppointmentID = :id";
-        $stmt = $pdo->prepare($query);
-        $stmt->execute([':id' => $data['id']]);
+        $json = json_decode($json, true);
+        $sql = "INSERT INTO tbl_appointment (pet_id, owner_id, vet_id, ServiceID, AppointmentDate, AppointmentTime, ReasonForVisit, Status) 
+                VALUES (:pet_id, :owner_id, :vet_id, :ServiceID, :AppointmentDate, :AppointmentTime, :ReasonForVisit, :Status)";
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(":pet_id", $json["pet_id"]);
+        $stmt->bindParam(":owner_id", $json["owner_id"]);
+        $stmt->bindParam(":vet_id", $json["vet_id"]);
+        $stmt->bindParam(":ServiceID", $json["ServiceID"]);
+        $stmt->bindParam(":AppointmentDate", $json["AppointmentDate"]);
+        $stmt->bindParam(":AppointmentTime", $json["AppointmentTime"]);
+        $stmt->bindParam(":ReasonForVisit", $json["ReasonForVisit"]);
+        $stmt->bindParam(":Status", $json["Status"]);
+        $stmt->execute();
+        return $stmt->rowCount() > 0 ? 1 : 0;
+    }
+    
+
+    function getAppointment($json){
+        include 'db.php';
+        $json = json_decode($json, true);
+        $sql = "SELECT * FROM tbl_appointment WHERE AppointmentID = :AppointmentID";
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(":AppointmentID", $json["AppointmentID"]);
+        $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($result) {
-            return json_encode(['success' => true, 'data' => $result, 'operation' => 'getAppointment']);
-        } else {
-            return json_encode(['success' => false, 'message' => 'Appointment not found', 'operation' => 'getAppointment']);
-        }
+        return $result ? json_encode($result) : json_encode([]);
     }
 
-    function handleUpdateAppointment($data)
-    {
+
+    function updateAppointment($json){
         include 'db.php';
-        $query = "UPDATE tbl_appointment SET pet_id = :pet_id, owner_id = :owner_id, VetID = :VetID, AppointmentDate = :AppointmentDate, 
-                  AppointmentTime = :AppointmentTime, ReasonForVisit = :ReasonForVisit, Status = :Status WHERE AppointmentID = :AppointmentID";
-        
-        $stmt = $pdo->prepare($query);
-        $result = $stmt->execute([
-            ':pet_id' => $data['PetID'], // Update to match new column name
-            ':owner_id' => $data['OwnerID'], // Update to match new column name
-            ':VetID' => $data['VetID'],
-            ':AppointmentDate' => $data['AppointmentDate'],
-            ':AppointmentTime' => $data['AppointmentTime'],
-            ':ReasonForVisit' => $data['ReasonForVisit'],
-            ':Status' => $data['Status'],
-            ':AppointmentID' => $data['AppointmentID']
-        ]);
-        
-        if ($result) {
-            return json_encode(['success' => true, 'message' => 'Appointment updated successfully', 'operation' => 'updateAppointment']);
-        } else {
-            return json_encode(['success' => false, 'message' => 'Failed to update appointment', 'operation' => 'updateAppointment']);
-        }
+        $json = json_decode($json, true);
+        $sql = "UPDATE tbl_appointment SET pet_id = :pet_id, owner_id = :owner_id, vet_id = :vet_id, ServiceID = :ServiceID, AppointmentDate = :AppointmentDate,
+                AppointmentTime = :AppointmentTime, ReasonForVisit = :ReasonForVisit, Status = :Status, UpdatedAt = NOW() 
+                WHERE AppointmentID = :AppointmentID";
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(":AppointmentID", $json["AppointmentID"]);
+        $stmt->bindParam(":pet_id", $json["pet_id"]);
+        $stmt->bindParam(":owner_id", $json["owner_id"]);
+        $stmt->bindParam(":VetID", $json["VetID"]);
+        $stmt->bindParam(":AppointmentDate", $json["AppointmentDate"]);
+        $stmt->bindParam(":AppointmentTime", $json["AppointmentTime"]);
+        $stmt->bindParam(":ReasonForVisit", $json["ReasonForVisit"]);
+        $stmt->bindParam(":Status", $json["Status"]);
+        $stmt->execute();
+        return $stmt->rowCount() > 0 ? 1 : 0;
     }
 
-    function handleDeleteAppointment($data)
-    {
+    function deleteAppointment($json){
         include 'db.php';
-        $query = "DELETE FROM tbl_appointment WHERE AppointmentID = :id";
-        $stmt = $pdo->prepare($query);
-        $result = $stmt->execute([':id' => $data['id']]);
-        
-        if ($result) {
-            return json_encode(['success' => true, 'message' => 'Appointment deleted successfully', 'operation' => 'deleteAppointment']);
-        } else {
-            return json_encode(['success' => false, 'message' => 'Failed to delete appointment', 'operation' => 'deleteAppointment']);
-        }
+        $json = json_decode($json, true);
+        $sql = "DELETE FROM tbl_appointment WHERE AppointmentID = :AppointmentID";
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(":AppointmentID", $json["AppointmentID"]);
+        $stmt->execute();
+        return $stmt->rowCount() > 0 ? 1 : 0;
     }
 
-    function handleListAppointments($data)
-    {
+    function listAppointments(){
         include 'db.php';
-        $query = "SELECT * FROM tbl_appointment WHERE 1=1";
-        $params = [];
-
-        if (!empty($data['PetID'])) {
-            $query .= " AND pet_id = :pet_id"; // Update to match new column name
-            $params[':pet_id'] = $data['PetID']; // Update to match new column name
-        }
-
-        if (!empty($data['OwnerID'])) {
-            $query .= " AND owner_id = :owner_id"; // Update to match new column name
-            $params[':owner_id'] = $data['OwnerID']; // Update to match new column name
-        }
-
-        if (!empty($data['VetID'])) {
-            $query .= " AND VetID = :VetID";
-            $params[':VetID'] = $data['VetID'];
-        }
-
-        if (!empty($data['Status'])) {
-            $query .= " AND Status = :Status";
-            $params[':Status'] = $data['Status'];
-        }
-
-        $stmt = $pdo->prepare($query);
-        $stmt->execute($params);
-        $appointments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        return json_encode(['success' => true, 'data' => $appointments, 'operation' => 'listAppointments']);
+        $sql = "SELECT pet_name, First_name, Middle_name, Last_name, user_firstname, user_lastname, ServiceName, AppointmentDate, AppointmentTime, ReasonForVisit, Status, b.CreatedAt, b.UpdatedAt
+                FROM tbl_pets AS a 
+                INNER JOIN tbl_appointment AS b ON b.pet_id = a.pet_id
+                INNER JOIN tbl_owners AS c ON c.owner_id = b.owner_id
+                INNER JOIN tbl_veterinarians AS d ON d.vet_id = b.vet_id
+                INNER JOIN users AS e ON e.UserID = d.user_id
+                INNER JOIN tbl_services AS f ON f.ServiceID = b.ServiceID";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute();
+        return $stmt->rowCount() > 0 ? json_encode($stmt->fetchAll(PDO::FETCH_ASSOC)) : 0;
     }
 }
 
@@ -127,19 +89,19 @@ $operation = isset($_POST["operation"]) ? $_POST["operation"] : "0";
 $appointmentOps = new AppointmentOperations();
 switch ($operation) {
     case "createAppointment":
-        echo $appointmentOps->handleCreateAppointment(json_decode($json, true));
+        echo $appointmentOps->createAppointment($json);
         break;
     case "getAppointment":
-        echo $appointmentOps->handleGetAppointment(json_decode($json, true));
+        echo $appointmentOps->getAppointment($json);
         break;
     case "updateAppointment":
-        echo $appointmentOps->handleUpdateAppointment(json_decode($json, true));
+        echo $appointmentOps->updateAppointment($json);
         break;
     case "deleteAppointment":
-        echo $appointmentOps->handleDeleteAppointment(json_decode($json, true));
+        echo $appointmentOps->deleteAppointment($json);
         break;
     case "listAppointments":
-        echo $appointmentOps->handleListAppointments(json_decode($json, true));
+        echo $appointmentOps->listAppointments($json);
         break;
     default:
         break;

@@ -6,129 +6,69 @@ header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 
 class VeterinarianOperations {
-    function handleCreateVeterinarian($data) {
+    function handleCreateVeterinarian($json) {
         include 'db.php';
-        $query = "INSERT INTO tbl_veterinarians (user_id, license_number, specialization, years_of_experience, availability) 
+        $json = json_decode($json, true);
+        $sql = "INSERT INTO tbl_veterinarians (user_id, license_number, specialization, years_of_experience, availability) 
                   VALUES (:user_id, :license_number, :specialization, :years_of_experience, :availability)";
-        
-        $stmt = $pdo->prepare($query);
-        $result = $stmt->execute([
-            ':user_id' => $data['user_id'],
-            ':license_number' => $data['license_number'],
-            ':specialization' => $data['specialization'],
-            ':years_of_experience' => $data['years_of_experience'],
-            ':availability' => $data['availability']
-        ]);
-        
-        if ($result) {
-            return json_encode([
-                'success' => true, 
-                'message' => 'Veterinarian created successfully', 
-                'id' => $pdo->lastInsertId(), 
-                'operation' => 'createVeterinarian'
-            ]);
-        } else {
-            return json_encode([
-                'success' => false, 
-                'message' => 'Failed to create veterinarian', 
-                'operation' => 'createVeterinarian'
-            ]);
-        }
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(":user_id", $json["user_id"]);
+        $stmt->bindParam(":license_number", $json["license_number"]);
+        $stmt->bindParam(":specialization", $json["specialization"]);
+        $stmt->bindParam(":years_of_experience", $json["years_of_experience"]);
+        $stmt->bindParam(":availability", $json["availability"]);
+        $stmt->execute();
+        return $stmt->rowCount() > 0 ? 1 : 0;
     }
 
-    function handleUpdateVeterinarian($data) {
+
+    function handleUpdateVeterinarian($json) {
         include 'db.php';
-        $query = "UPDATE tbl_veterinarians 
-                  SET license_number = :license_number, 
-                      specialization = :specialization, 
-                      years_of_experience = :years_of_experience, 
-                      availability = :availability 
-                  WHERE vet_id = :vet_id";
-        
-        $stmt = $pdo->prepare($query);
-        $result = $stmt->execute([
-            ':vet_id' => $data['vet_id'],
-            ':license_number' => $data['license_number'],
-            ':specialization' => $data['specialization'],
-            ':years_of_experience' => $data['years_of_experience'],
-            ':availability' => $data['availability']
-        ]);
-        
-        if ($result) {
-            return json_encode([
-                'success' => true, 
-                'message' => 'Veterinarian updated successfully', 
-                'operation' => 'updateVeterinarian'
-            ]);
-        } else {
-            return json_encode([
-                'success' => false, 
-                'message' => 'Failed to update veterinarian', 
-                'operation' => 'updateVeterinarian'
-            ]);
-        }
+        $json = json_decode($json, true);
+        $sql = "UPDATE tbl_veterinarians SET user_id = :user_id, license_number = :license_number, specialization = :specialization, years_of_experience = :years_of_experience, availability = :availability WHERE vet_id = :id";
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(":user_id", $json["user_id"]);
+        $stmt->bindParam(":license_number", $json["license_number"]);
+        $stmt->bindParam(":specialization", $json["specialization"]);
+        $stmt->bindParam(":years_of_experience", $json["years_of_experience"]);
+        $stmt->bindParam(":availability", $json["availability"]);
+        $stmt->bindParam(":id", $json['id']);
+        $stmt->execute();
+        return $stmt->rowCount() > 0 ? 1 : 0;
     }
 
-    function handleGetVeterinarian($data) {
+
+    function handleGetVeterinarian($json) {
         include 'db.php';
-        $query = "SELECT v.*, u.FirstName, u.LastName, u.Email 
-                  FROM tbl_veterinarians v 
-                  JOIN users u ON v.user_id = u.UserID 
-                  WHERE v.vet_id = :id";
-        $stmt = $pdo->prepare($query);
-        $stmt->execute([':id' => $data['id']]);
+        $json = json_decode($json, true);
+        $sql = "SELECT * FROM tbl_veterinarians WHERE vet_id = :vet_id";
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(":vet_id", $json["vet_id"]);
+        $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($result) {
-            return json_encode([
-                'success' => true, 
-                'data' => $result, 
-                'operation' => 'getVeterinarian'
-            ]);
-        } else {
-            return json_encode([
-                'success' => false, 
-                'message' => 'Veterinarian not found', 
-                'operation' => 'getVeterinarian'
-            ]);
-        }
+        return $result ? json_encode($result) : json_encode([]);
     }
 
-    function handleDeleteVeterinarian($data) {
+    function handleDeleteVeterinarian($json) {
         include 'db.php';
-        $query = "DELETE FROM tbl_veterinarians WHERE vet_id = :id";
-        $stmt = $pdo->prepare($query);
-        $result = $stmt->execute([':id' => $data['id']]);
-        
-        if ($result) {
-            return json_encode([
-                'success' => true, 
-                'message' => 'Veterinarian deleted successfully', 
-                'operation' => 'deleteVeterinarian'
-            ]);
-        } else {
-            return json_encode([
-                'success' => false, 
-                'message' => 'Failed to delete veterinarian', 
-                'operation' => 'deleteVeterinarian'
-            ]);
-        }
+        $json = json_decode($json, true);
+        $sql = "DELETE FROM tbl_veterinarians WHERE vet_id = :vet_id";
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(":vet_id", $json["vet_id"]);
+        $stmt->execute();
+        return $stmt->rowCount() > 0 ? 1 : 0;
     }
 
+     
     function handleListVeterinarians() {
         include 'db.php';
-        $query = "SELECT v.*, u.FirstName, u.LastName, u.Email 
-                  FROM tbl_veterinarians v 
-                  JOIN users u ON v.user_id = u.UserID";
-        $stmt = $pdo->query($query);
-        $vets = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        return json_encode([
-            'success' => true, 
-            'data' => $vets, 
-            'operation' => 'listVeterinarians'
-        ]);
+        $sql = "SELECT * FROM tbl_veterinarians";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute();
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt->rowCount() > 0 ? json_encode($result) : json_encode([]);
     }
+        
 }
 
 $json = isset($_POST["json"]) ? $_POST["json"] : "0";
@@ -138,16 +78,16 @@ $vetOps = new VeterinarianOperations();
 
 switch ($operation) {
     case "createVeterinarian":
-        echo $vetOps->handleCreateVeterinarian(json_decode($json, true));
+        echo $vetOps->handleCreateVeterinarian($json);
         break;
     case "updateVeterinarian":
-        echo $vetOps->handleUpdateVeterinarian(json_decode($json, true));
+        echo $vetOps->handleUpdateVeterinarian($json);
         break;
     case "getVeterinarian":
-        echo $vetOps->handleGetVeterinarian(json_decode($json, true));
+        echo $vetOps->handleGetVeterinarian($json);
         break;
     case "deleteVeterinarian":
-        echo $vetOps->handleDeleteVeterinarian(json_decode($json, true));
+        echo $vetOps->handleDeleteVeterinarian($json);
         break;
     case "listVeterinarians":
         echo $vetOps->handleListVeterinarians();

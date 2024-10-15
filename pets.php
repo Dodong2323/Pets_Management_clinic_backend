@@ -35,6 +35,7 @@ class SavePets
 
     function addBreeds($json)
     {
+        //{"breed_name":"test","species_id":1}
         include 'db.php';
         $json = json_decode($json, true);
         $sql = "INSERT INTO tbl_breeds(breed_name,species_id) VALUES(:breed_name,:species_id)";
@@ -47,9 +48,11 @@ class SavePets
 
     function addPets($json)
     {
+        //{"pet_name":"test","species_id":1,"breed_id":1,"date_of_birth":"2019-01-01","owner_id":1}
         include 'db.php';
         $json = json_decode($json, true);
-        $sql = "INSERT INTO tbl_pets(pet_name,species_id,breed_id,date_of_birth,owner_id) VALUES(:pet_name,:species_id,:breed_id,:date_of_birth,:owner_id)";
+        $sql = "INSERT INTO tbl_pets(pet_name,species_id,breed_id,date_of_birth,owner_id) 
+        VALUES(:pet_name,:species_id,:breed_id,:date_of_birth,:owner_id)";
         $stmt = $conn->prepare($sql);
         $stmt->bindParam(":pet_name", $json["pet_name"]);
         $stmt->bindParam(":species_id", $json["species_id"]);
@@ -165,19 +168,8 @@ class SavePets
         $sql = "SELECT * FROM tbl_owners";
         $stmt = $conn->prepare($sql);
         $stmt->execute();
-        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        return $stmt->rowCount() > 0 ? json_encode($result) : 0;
+       return $stmt->rowCount() > 0 ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
     }
-
-    // function getSpeciesDetails()
-    // {
-    //     include "connection.php";
-    //     $sql = "SELECT * FROM tbl_species";
-    //     $stmt = $conn->prepare($sql);
-    //     $stmt->execute();
-    //     $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    //     return $stmt->rowCount() > 0 ? json_encode($result) : 0;
-    // }
 
     function getSpeciesDetails()
     {
@@ -185,13 +177,7 @@ class SavePets
         $sql = "SELECT * FROM tbl_species";
         $stmt = $conn->prepare($sql);
         $stmt->execute();
-        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        if ($stmt->rowCount() > 0) {
-            echo json_encode($result);  // Echo the JSON result
-        } else {
-            echo json_encode([]);  // Return an empty array instead of 0 for consistency
-        }
+        return $stmt->rowCount() > 0 ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
     }
 
 
@@ -201,8 +187,18 @@ class SavePets
         $sql = "SELECT * FROM tbl_breeds";
         $stmt = $conn->prepare($sql);
         $stmt->execute();
-        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        return $stmt->rowCount() > 0 ? json_encode($result) : 0;
+        return $stmt->rowCount() > 0 ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
+    }
+
+    function getalldetails()
+    {
+        include 'db.php';
+        $returnValue = [];
+        $returnValue["getOwnerDetails"] = $this->getOwnerDetails();
+        $returnValue["getSpeciesDetails"] = $this->getSpeciesDetails();
+        $returnValue["getBreedDetails"] = $this->getBreedDetails();
+        return json_encode($returnValue);
+    
     }
 
     function getPetDetails()
@@ -304,6 +300,10 @@ switch ($operation) {
     case "getPetDetailsWithFilter":
         echo $savePets->getPetDetailsWithFilter($json);
         break;
+    case "getalldetails":
+        echo $savePets->getalldetails();
+        break;
     default:
+        echo "walay " . $operation . "sa ubosa bugo";
         break;
 }
