@@ -21,54 +21,55 @@ class AdoptionOperations
 
     }
 
-    function getAdoption($json){
+    function requestAdoption($json){
         include 'db.php';
         $json = json_decode($json, true);
-        $sql = "SELECT * FROM tbl_adoptions WHERE AdoptionID = :AdoptionID";
+        $sql = "INSERT INTO tbl_adoptions (petId, UserID, Status, Reason ) 
+        VALUES (:petId, :UserID, :Status, :Reason)";
         $stmt = $conn->prepare($sql);
-        $stmt->bindParam(":AdoptionID", $json["AdoptionID"]);
-        $stmt->execute();
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result ? json_encode($result) : json_encode([]);
-    }
-
-
-    function updateAdoption($json){
-        include 'db.php';
-        $json = json_decode($json, true);
-        $sql = "UPDATE tbl_adoptions SET pet_id = :pet_id, AdopterID = :AdopterID, AdoptionDate = :AdoptionDate, Status = :Status, Notes = :Notes WHERE AdoptionID = :AdoptionID";
-        $stmt = $conn->prepare($sql);
-        $stmt->bindParam(":AdoptionID", $json["AdoptionID"]);
-        $stmt->bindParam(":AdopterID", $json["AdopterID"]);
-        $stmt->bindParam(":AdoptionDate", $json["AdoptionDate"]);
+        $stmt->bindParam(":UserID", $json["UserID"]);
         $stmt->bindParam(":Status", $json["Status"]);
-        $stmt->bindParam(":Notes", $json["Notes"]);
-        $stmt->bindParam(":pet_id", $json["pet_id"]);
+        $stmt->bindParam(":Reason", $json["Reason"]);
+        $stmt->bindParam(":petId", $json["petId"]);
+
         $stmt->execute();
         return $stmt->rowCount() > 0 ? 1 : 0;
+     
+   
     }
 
-    function deleteAdoption($json){
+    function updateToAproved($json){
         include 'db.php';
         $json = json_decode($json, true);
-        $sql = "DELETE FROM tbl_adoptions WHERE AdoptionID = :AdoptionID";
+        $sql = "UPDATE tbl_adoptions SET Status = :Status WHERE AdoptionID = :AdoptionID";
         $stmt = $conn->prepare($sql);
         $stmt->bindParam(":AdoptionID", $json["AdoptionID"]);
+        $stmt->bindParam(":Status", $json["Status"]);
         $stmt->execute();
         return $stmt->rowCount() > 0 ? 1 : 0;
     }
 
-    function listAdoptions() {
+    function updateToReview($json){
         include 'db.php';
-        $sql = "SELECT a.pet_name, c.First_name, c.Middle_name, c.Last_name, b.AdoptionDate, b.Status, b.Notes, b.CreatedAt, b.UpdatedAt
-                FROM tbl_pets AS a
-                INNER JOIN tbl_adoptions AS b ON b.pet_id = a.pet_id
-                INNER JOIN tbl_owners AS c ON c.owner_id = b.AdopterID";
+        $json = json_decode($json, true);
+        $sql = "UPDATE tbl_adoptions SET Status = :Status WHERE AdoptionID = :AdoptionID";
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(":AdoptionID", $json["AdoptionID"]);
+        $stmt->bindParam(":Status", $json["Status"]);
+        $stmt->execute();
+        return $stmt->rowCount() > 0 ? 1 : 0;
+    }
+
+    function PendingAdoptionRequests()
+    {
+        include 'db.php';
+        $sql = "SELECT * FROM tbl_adoptions WHERE Status = 'Pending'";
         $stmt = $conn->prepare($sql);
         $stmt->execute();
-        return $stmt->rowCount() > 0 ? json_encode($stmt->fetchAll(PDO::FETCH_ASSOC)) : 0;
+        return $stmt->rowCount() > 0 ? json_encode($stmt->fetchAll(PDO::FETCH_ASSOC)) : json_encode([]);    
     }
-    
+
+
 }
 
 $json = isset($_POST["json"]) ? $_POST["json"] : "0";
@@ -79,17 +80,17 @@ switch ($operation) {
     case "createAdoption":
         echo $adoptionOps->createAdoption($json);
         break;
-    case "getAdoption":
-        echo $adoptionOps->getAdoption($json);
+    case "requestAdoption":
+        echo $adoptionOps->requestAdoption($json);
         break;
-    case "updateAdoption":
-        echo $adoptionOps->updateAdoption($json);
+    case "updateToAproved":
+        echo $adoptionOps->updateToAproved($json);
         break;
-    case "deleteAdoption":
-        echo $adoptionOps->deleteAdoption($json);
+    case "updateToReview":
+        echo $adoptionOps->updateToReview($json);
         break;
-    case "listAdoptions":
-        echo $adoptionOps->listAdoptions();
+    case "PendingAdoptionRequests":
+        echo $adoptionOps->PendingAdoptionRequests();
         break;
     default:
         break;

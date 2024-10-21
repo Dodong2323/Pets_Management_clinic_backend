@@ -1,31 +1,29 @@
 <?php
 
-header('Content-Type: application/json');
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
-
+include 'headers.php';
 include 'db.php';
 
 class ServicesAPI
 {
-
-    function addService($json)
-    {
-        //addService {"ServiceName":"Check-up","Description":"Routine pet check-up","Price":50.00,"Duration":30}
+        // Example JSON: {"ServiceName":"Check-up","Description":"Routine pet check-up","Price":50.00,"Duration":30, "UpdatedAt":"2024-10-19 14:23:55"}
+    function addService($json)    {        
         include 'db.php';
         $json = json_decode($json, true);
-        $sql = "INSERT INTO tbl_services (ServiceName, Description, Price, Duration) 
-                VALUES (:ServiceName, :Description, :Price, :Duration)";
+        $createdAt = date("Y-m-d H:i:s");
+        $updatedAt = isset($json["UpdatedAt"]) ? $json["UpdatedAt"] : date("Y-m-d H:i:s");
+        $sql = "INSERT INTO tbl_services (ServiceName, Description, Price, Duration, CreatedAt, UpdatedAt) 
+                VALUES (:ServiceName, :Description, :Price, :Duration, :CreatedAt, :UpdatedAt)";
         $stmt = $conn->prepare($sql);
         $stmt->bindParam(":ServiceName", $json["ServiceName"]);
         $stmt->bindParam(":Description", $json["Description"]);
         $stmt->bindParam(":Price", $json["Price"]);
         $stmt->bindParam(":Duration", $json["Duration"]);
+        $stmt->bindParam(":CreatedAt", $createdAt);
+        $stmt->bindParam(":UpdatedAt", $updatedAt);
         $stmt->execute();
         return $stmt->rowCount() > 0 ? 1 : 0;
     }
-
+    
     function updateService($json)
     {
         include 'db.php';
@@ -61,7 +59,7 @@ class ServicesAPI
       $sql = "SELECT * FROM tbl_services";
       $stmt = $conn->prepare($sql);
       $stmt->execute();
-      return $stmt->rowCount() > 0 ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
+      return $stmt->rowCount() > 0 ? json_encode($stmt->fetchAll(PDO::FETCH_ASSOC)) : 0;
   }
 
     function getServiceById($json)

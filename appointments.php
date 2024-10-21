@@ -1,16 +1,21 @@
 <?php
+header("Content-Type: application/json");
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type");
 include 'db.php';
-include 'headers.php';
+// include 'headers.php';
 
 
 class AppointmentOperations
 {
 
-    function createAppointment($json){
+    function createAppointment($json)
+    {
         include 'db.php';
         $json = json_decode($json, true);
-        $sql = "INSERT INTO tbl_appointment (pet_id, owner_id, vet_id, ServiceID, AppointmentDate, AppointmentTime, ReasonForVisit, Status) 
-                VALUES (:pet_id, :owner_id, :vet_id, :ServiceID, :AppointmentDate, :AppointmentTime, :ReasonForVisit, :Status)";
+        $sql = "INSERT INTO tbl_appointment (pet_id, owner_id, vet_id, ServiceID, AppointmentDate, AppointmentTime, ReasonForVisit) 
+                VALUES (:pet_id, :owner_id, :vet_id, :ServiceID, :AppointmentDate, :AppointmentTime, :ReasonForVisit)";
         $stmt = $conn->prepare($sql);
         $stmt->bindParam(":pet_id", $json["pet_id"]);
         $stmt->bindParam(":owner_id", $json["owner_id"]);
@@ -19,13 +24,13 @@ class AppointmentOperations
         $stmt->bindParam(":AppointmentDate", $json["AppointmentDate"]);
         $stmt->bindParam(":AppointmentTime", $json["AppointmentTime"]);
         $stmt->bindParam(":ReasonForVisit", $json["ReasonForVisit"]);
-        $stmt->bindParam(":Status", $json["Status"]);
         $stmt->execute();
         return $stmt->rowCount() > 0 ? 1 : 0;
     }
-    
 
-    function getAppointment($json){
+
+    function getAppointment($json)
+    {
         include 'db.php';
         $json = json_decode($json, true);
         $sql = "SELECT * FROM tbl_appointment WHERE AppointmentID = :AppointmentID";
@@ -36,8 +41,21 @@ class AppointmentOperations
         return $result ? json_encode($result) : json_encode([]);
     }
 
+    function listAppointmentsByowner($json)
+    {
+        include 'db.php';
+        $json = json_decode($json, true);
+        $sql = "SELECT * FROM tbl_appointment WHERE owner_id = :owner_id";
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(":owner_id", $json["owner_id"]);
+        $stmt->execute();
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt->rowCount() > 0 ? json_encode($result) : json_encode([]);
+    }
 
-    function updateAppointment($json){
+
+    function updateAppointment($json)
+    {
         include 'db.php';
         $json = json_decode($json, true);
         $sql = "UPDATE tbl_appointment SET pet_id = :pet_id, owner_id = :owner_id, vet_id = :vet_id, ServiceID = :ServiceID, AppointmentDate = :AppointmentDate,
@@ -56,7 +74,8 @@ class AppointmentOperations
         return $stmt->rowCount() > 0 ? 1 : 0;
     }
 
-    function deleteAppointment($json){
+    function deleteAppointment($json)
+    {
         include 'db.php';
         $json = json_decode($json, true);
         $sql = "DELETE FROM tbl_appointment WHERE AppointmentID = :AppointmentID";
@@ -66,7 +85,8 @@ class AppointmentOperations
         return $stmt->rowCount() > 0 ? 1 : 0;
     }
 
-    function listAppointments(){
+    function listAppointments()
+    {
         include 'db.php';
         $sql = "SELECT pet_name, First_name, Middle_name, Last_name, user_firstname, user_lastname, ServiceName, AppointmentDate, AppointmentTime, ReasonForVisit, Status, b.CreatedAt, b.UpdatedAt
                 FROM tbl_pets AS a 
@@ -78,6 +98,25 @@ class AppointmentOperations
         $stmt = $conn->prepare($sql);
         $stmt->execute();
         return $stmt->rowCount() > 0 ? json_encode($stmt->fetchAll(PDO::FETCH_ASSOC)) : 0;
+    }
+
+    function getOwnerPetDetails($json)
+    {
+        // {"owner_id": 1}
+        include 'db.php';
+        $data = json_decode($json, true);
+        $sql = "SELECT a.pet_name, a.date_of_birth, a.pet_status, b.species_name, c.breed_name, CONCAT(d.First_name , ' ' ,d.Middle_name , ' ' , d.Last_name) as FullName FROM tbl_pets a
+                INNER JOIN tbl_species b ON b.species_id = a.species_id
+                INNER JOIN tbl_breeds c ON c.breed_id = a.species_id
+                INNER JOIN tbl_owners d ON d.owner_id = a.owner_id
+                WHERE a.owner_id = :owner_id";
+
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(":owner_id", $data["owner_id"]);
+        $stmt->execute();
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return $stmt->rowCount() > 0 ? json_encode($result) : json_encode([]);
     }
 }
 
@@ -100,11 +139,15 @@ switch ($operation) {
     case "deleteAppointment":
         echo $appointmentOps->deleteAppointment($json);
         break;
+    case "listAppointmentsByowner":
+        echo $appointmentOps->listAppointmentsByowner($json);
+        break;
     case "listAppointments":
         echo $appointmentOps->listAppointments($json);
+        break;
+    case "getOwnerPetDetails":
+        echo $appointmentOps->getOwnerPetDetails($json);
         break;
     default:
         break;
 }
-
-?>

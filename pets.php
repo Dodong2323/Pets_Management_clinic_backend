@@ -8,6 +8,28 @@ header("Access-Control-Allow-Headers: Content-Type");
 include 'db.php';
 class SavePets
 {
+    function addPets($json)
+{
+    include 'db.php';
+    $json = json_decode($json, true);
+    $sql = "INSERT INTO tbl_pets(pet_name, species_id, breed_id, date_of_birth, UserID) 
+    VALUES(:pet_name, :species_id, :breed_id, :date_of_birth, :UserID)";
+    $stmt = $conn->prepare($sql);
+    $stmt->bindParam(":pet_name", $json["pet_name"]);
+    $stmt->bindParam(":species_id", $json["species_id"]);
+    $stmt->bindParam(":breed_id", $json["breed_id"]);
+    $stmt->bindParam(":date_of_birth", $json["date_of_birth"]);
+    $stmt->bindParam(":UserID", $json["UserID"]);
+    
+    try {
+        $stmt->execute();
+        return $stmt->rowCount() > 0 ? 1 : 0;
+    } catch (PDOException $e) {
+        error_log("Error adding pet: " . $e->getMessage());
+        return 0;
+    }
+}
+
 
     function addSpecies($json)
     {
@@ -46,22 +68,19 @@ class SavePets
         return $stmt->rowCount() > 0 ? 1 : 0;
     }
 
-    function addPets($json)
-    {
-        //{"pet_name":"test","species_id":1,"breed_id":1,"date_of_birth":"2019-01-01","owner_id":1}
+    function ownerpets($UserID) {
         include 'db.php';
-        $json = json_decode($json, true);
-        $sql = "INSERT INTO tbl_pets(pet_name,species_id,breed_id,date_of_birth,owner_id) 
-        VALUES(:pet_name,:species_id,:breed_id,:date_of_birth,:owner_id)";
+        $sql = "SELECT p.*, s.species_name, b.breed_name 
+                FROM tbl_pets p
+                JOIN tbl_species s ON p.species_id = s.species_id
+                JOIN tbl_breeds b ON p.breed_id = b.breed_id
+                WHERE p.UserID = :UserID";
         $stmt = $conn->prepare($sql);
-        $stmt->bindParam(":pet_name", $json["pet_name"]);
-        $stmt->bindParam(":species_id", $json["species_id"]);
-        $stmt->bindParam(":breed_id", $json["breed_id"]);
-        $stmt->bindParam(":date_of_birth", $json["date_of_birth"]);
-        $stmt->bindParam(":owner_id", $json["owner_id"]);
+        $stmt->bindParam(':UserID', $UserID);
         $stmt->execute();
-        return $stmt->rowCount() > 0 ? 1 : 0;
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+    
 
     function updateSpecies($json)
     {
@@ -102,7 +121,7 @@ class SavePets
         return $stmt->rowCount() > 0 ? 1 : 0;
     }
 
-    function updatePets($json)
+        function updatePets($json)
     {
         include 'db.php';
         $json = json_decode($json, true);
@@ -168,7 +187,7 @@ class SavePets
         $sql = "SELECT * FROM tbl_owners";
         $stmt = $conn->prepare($sql);
         $stmt->execute();
-       return $stmt->rowCount() > 0 ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
+        return $stmt->rowCount() > 0 ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
     }
 
     function getSpeciesDetails()
@@ -198,31 +217,24 @@ class SavePets
         $returnValue["getSpeciesDetails"] = $this->getSpeciesDetails();
         $returnValue["getBreedDetails"] = $this->getBreedDetails();
         return json_encode($returnValue);
-    
     }
 
     function getPetDetails()
     {
         include 'db.php';
-    
-        $sql = "SELECT 
-                    a.owner_name, 
-                    b.pet_name, 
-                    c.species_name, 
-                    d.breed_name, 
-                    b.date_of_birth 
-                FROM tbl_owners AS a 
-                INNER JOIN tbl_pets AS b ON b.owner_id = a.owner_id 
-                INNER JOIN tbl_species AS c ON c.species_id = b.species_id 
-                INNER JOIN tbl_breeds AS d ON d.breed_id = b.breed_id";
-    
+
+        $sql = "SELECT a.pet_name, a.date_of_birth, a.pet_status, b.species_name, c.breed_name, CONCAT(d.First_name , ' ' ,d.Middle_name , ' ' , d.Last_name) as FullName FROM tbl_pets a
+                INNER JOIN tbl_species b ON b.species_id = a.species_id
+                INNER JOIN tbl_breeds c ON c.breed_id = a.species_id
+                INNER JOIN tbl_owners d ON d.owner_id = a.owner_id";
+
         $stmt = $conn->prepare($sql);
         $stmt->execute();
         $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
         return $stmt->rowCount() > 0 ? json_encode($result) : json_encode([]);
     }
-    
+
 
     function getPetDetailsWithFilter($json)
     {
@@ -258,9 +270,12 @@ switch ($operation) {
     case "addBreeds":
         echo $savePets->addBreeds($json);
         break;
-    case "addPets":
-        echo $savePets->addPets($json);
-        break;
+      // In the switch statement:
+        case "ownerpets":
+            $UserID = $_POST["UserID"];
+            echo json_encode($savePets->ownerpets($UserID));
+            break;
+    
     case "updateSpecies":
         echo $savePets->updateSpecies($json);
         break;
@@ -282,6 +297,13 @@ switch ($operation) {
     case "deleteBreed":
         echo $savePets->deleteBreed($json);
         break;
+        case "addPets":
+            $result = $savePets->addPets($json);
+            if ($result === 0) {
+                error_log("Failed to add pet. JSON: " . $json);
+            }
+            echo $result;
+            break;
     case "deletePet":
         echo $savePets->deletePet($json);
         break;
@@ -294,6 +316,10 @@ switch ($operation) {
     case "getBreedDetails":
         echo $savePets->getBreedDetails();
         break;
+        case "ownerpets":
+            $UserID = $_POST["UserID"];
+            echo json_encode($UserID);
+            break;
     case "getPetDetails":
         echo $savePets->getPetDetails();
         break;

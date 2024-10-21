@@ -1,5 +1,10 @@
 <?php
-include 'headers.php';
+
+header("Content-Type: application/json");
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type");
+// include 'headers.php';
 include 'db.php';
 
 class OwnerOperations {
@@ -89,7 +94,7 @@ switch ($operation) {
         break;
     case "deleteOwner":
         echo $ownerOps->deleteOwner($json);
-        break;
+        
     case "ListPetsByOwner":
         echo $ownerOps->ListPetsByOwner($json);
         break;
